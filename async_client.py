@@ -26,8 +26,8 @@ class AsyncClient(asyncio.Protocol):
     def __init__(self):
         self.username = ""
         self.logged_in = False
-        self.data = ()
         self.header_struct = struct.Struct('!I')
+        self.data = ""
 
     def connection_made(self,transport):
         self.transport = transport
@@ -44,17 +44,18 @@ class AsyncClient(asyncio.Protocol):
 
     def data_received(self, data):
         """simply prints any data that is received"""
-        print("received: ", data)
-        self.data = data
-        print("\n\n\nDatareceived test here\n\n")
-        self.data = data.decode("utf-8")
-        my_dict = json.loads(self.data)
-        print(my_dict.get("USERNAME_ACCEPTED"))
+
+        print("Receive before setting: ", data,"\n\n\n\n")
+
+        #json_data = data.replace("'", "\"")
+
+        self.data += data.decode()
+        #first need to get the first 4 bytes for the len(data)
+
+
+
 #Clean this up later put it under handle user input function
 #break it into 2 part b4 logged in and after logged in
-
-
-
 
 
 
@@ -79,10 +80,11 @@ class AsyncClient(asyncio.Protocol):
                 self.send_message(string_message)
 
                 yield from asyncio.sleep(1.0)
-                self.username = message
-                returned_message = self.data.decode("utf-8")
-                returned_message = json.dumps(returned_message)
-                print("\n\n\n\n\nData:" + returned_message+ "\n\n\n")
+
+                print(self.data)#This is all the data together
+                json_dict = json.dumps(self.data)
+                print(json_dict)
+                # make this a dictionary then sort data.
 
             #If user is logged in
             else:
