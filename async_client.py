@@ -24,25 +24,31 @@ import socket
 import time
 import ssl
 import json
-
+import struct
 
 class AsyncClient(asyncio.Protocol):
     def __init__(self):
         self.username = ""
         self.logged_in = False
-
-
+        self.header_struct = struct.Struct('!I')
 
     def connection_made(self,transport):
         self.transport = transport
         self.address = transport.get_extra_info("peername")
         print('accepted connection from {}'.format(self.address))
 
+    def send_message(self, data):
+        print("Sending message" + data)
+        message = self.header_struct.pack((data))
+        self.transport.write(message)
+
+
     def data_received(self, data):
         """simply prints any data that is received"""
         print("received: ", data)
         json_dict = json.loads(data)
-
+#Clean this up later put it under handle user input function
+#break it into 2 part b4 logged in and after logged in
         if "USERNAME_ACCEPTED" in json_dict:
             boolean = json_dict.get("USERNAME_ACCEPTED")
             if boolean == True:
@@ -70,14 +76,7 @@ class AsyncClient(asyncio.Protocol):
         else:
             print("Unexpected error: " + json_dict.get("INFO") + '\n')
 
-    def send_message(self, data):
-        message = bytes(data, 'utf-8')
-        self.transport.write(message)
 
-    def connection_lost(self, ex):
-        print("Lost connection" + '\n')
-        self.logged_in = False
-        self.transport.close()
 
 
 
@@ -97,13 +96,14 @@ class AsyncClient(asyncio.Protocol):
                     loop.stop()
                     return
                 #store message for your self and send the username
-                self.username = message
+
                 my_dict = {"USERNAME": message}
                 coded_message = json.dumps(my_dict)
                 self.send_message(coded_message)
 
                 yield from asyncio.sleep(1.0)
-               
+                print("Test: not logged in loop")
+                self.username = message
 
             #If user is logged in
             else:
@@ -111,20 +111,14 @@ class AsyncClient(asyncio.Protocol):
                 if message == "quit":
                     loop.stop()
                     return
-                if message[0] == "@":
-                    # haven't figured out how to store messages really
-                    #Haven't implemented send direct message function yet
-                    self.send_direct_message(message)
-                #haven't implemented send message function yet
                 self.send_message(message)
                 yield from asyncio.sleep(1.0)
-               
+                print("Test:logged in loop")
 
     def connection_lost(self, ex):
-        self.transport.close()
+        print("Lost connection" + '\n')
         self.logged_in = False
-        return
-
+        self.transport.close()
 
 
 
@@ -149,6 +143,7 @@ if __name__ == '__main__':
     #purpose = ssl.Purpose.CLIENT_AUTH
 	#context = ssl.create_default_context(purpose, cafile=args.cafile)
     #context.load_cert_chain(certfile)
+#Add ssl for certifacate later
 
     coro = loop.create_connection(lambda: client, args.host , args.p)
 
