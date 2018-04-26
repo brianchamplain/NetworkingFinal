@@ -21,13 +21,14 @@ import time
 import ssl
 import json
 import struct
+import ast
 
 class AsyncClient(asyncio.Protocol):
     def __init__(self):
         self.username = ""
         self.logged_in = False
         self.header_struct = struct.Struct('!I')
-        self.data = ""
+        self.data = b''
 
     def connection_made(self,transport):
         self.transport = transport
@@ -37,25 +38,16 @@ class AsyncClient(asyncio.Protocol):
     def send_message(self, data):
         length = self.header_struct.pack(len(data))
         self.transport.write(length)
-        message = data.encode('utf-8')
+        message = data.encode('ascii')
         self.transport.write(message)
 
 
 
     def data_received(self, data):
         """simply prints any data that is received"""
-
-        print("Receive before setting: ", data,"\n\n\n\n")
-
-        #json_data = data.replace("'", "\"")
-
-        self.data += data.decode()
-        #first need to get the first 4 bytes for the len(data)
+        self.data += data
 
 
-
-#Clean this up later put it under handle user input function
-#break it into 2 part b4 logged in and after logged in
 
 
 
@@ -81,10 +73,16 @@ class AsyncClient(asyncio.Protocol):
 
                 yield from asyncio.sleep(1.0)
 
-                print(self.data)#This is all the data together
-                json_dict = json.dumps(self.data)
-                print(json_dict)
-                # make this a dictionary then sort data.
+                #json_string = json.dumps(self.data)
+                self.data = self.data[4:]
+                self.data.decode()
+                json_dict = json.loads(self.data)
+                if json_dict.get("USERNAME_ACCEPTED") == False:
+                    print("\n", json_dict.get("INFO"), "\n")
+                elif json_dict.get("USERNAME_ACCEPTED") == True:
+                    print("\n", json_dict.get("INFO"), "\n")
+                    print("\n", json_dict.get("USER_LIST"), "\n")
+                    self.logged_in = True
 
             #If user is logged in
             else:
