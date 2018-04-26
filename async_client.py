@@ -1,12 +1,8 @@
 """async_client
-
 Champlain College CSI-235, Spring 2018
 Prof. Josh Auerbach
-
-Bare bones example of asynchronously receiving 
+Bare bones example of asynchronously receiving
 data from server and user input from stdin
-
-
     Author: Brian Nguyen and Jake Buzzell
     Class   : CSI-235
     Assignment: Final Project
@@ -30,6 +26,7 @@ class AsyncClient(asyncio.Protocol):
     def __init__(self):
         self.username = ""
         self.logged_in = False
+        self.data = ()
         self.header_struct = struct.Struct('!I')
 
     def connection_made(self,transport):
@@ -38,43 +35,24 @@ class AsyncClient(asyncio.Protocol):
         print('accepted connection from {}'.format(self.address))
 
     def send_message(self, data):
-        print("Sending message" + data)
-        message = self.header_struct.pack((data))
+        length = self.header_struct.pack(len(data))
+        self.transport.write(length)
+        message = data.encode('utf-8')
         self.transport.write(message)
+
 
 
     def data_received(self, data):
         """simply prints any data that is received"""
         print("received: ", data)
-        json_dict = json.loads(data)
+        self.data = data
+        print("\n\n\nDatareceived test here\n\n")
+        self.data = data.decode("utf-8")
+        my_dict = json.loads(self.data)
+        print(my_dict.get("USERNAME_ACCEPTED"))
 #Clean this up later put it under handle user input function
 #break it into 2 part b4 logged in and after logged in
-        if "USERNAME_ACCEPTED" in json_dict:
-            boolean = json_dict.get("USERNAME_ACCEPTED")
-            if boolean == True:
-                self.logged_in = True
-                print(">Welcome! " + self.username + " Here's what you can do"
-                  "\nEnter a message to send to all users"
-                  "\n>Enter quit to quit"
-                  "\n>Enter @username + message to send a direct message to a user"
-                  "\n>Input: ")
 
-                if "INFO" in json_dict:
-                    print("Info: " + json_dict.get("INFO") + '\n')
-                elif "USER_LIST: " in json_dict:
-                    print("User list: " + json_dict.get("USER_LIST") + '\n')
-                elif "MESSAGES" in json_dict:
-                    print("Messages: " + json_dict.get("MESSAGES") + '\n')
-
-                elif "USERS_JOINED" in json_dict:
-                    print("New user(s) joined: " + json_dict.get("USERS_JOINED") + '\n')
-                elif "USERS_LEFT" in json_dict:
-                    print("User(s) left: " + json_dict.get("USERS_LEFT") + '\n')
-
-            elif boolean == False:
-                print(json_dict.get("INFO") + '\n')
-        else:
-            print("Unexpected error: " + json_dict.get("INFO") + '\n')
 
 
 
@@ -83,7 +61,6 @@ class AsyncClient(asyncio.Protocol):
     @asyncio.coroutine
     def handle_user_input(self, loop):
         """reads from stdin in separate thread
-
         if user inputs 'quit' stops the event loop
         otherwise just echos user input
         """
@@ -98,12 +75,14 @@ class AsyncClient(asyncio.Protocol):
                 #store message for your self and send the username
 
                 my_dict = {"USERNAME": message}
-                coded_message = json.dumps(my_dict)
-                self.send_message(coded_message)
+                string_message = json.dumps(my_dict)
+                self.send_message(string_message)
 
                 yield from asyncio.sleep(1.0)
-                print("Test: not logged in loop")
                 self.username = message
+                returned_message = self.data.decode("utf-8")
+                returned_message = json.dumps(returned_message)
+                print("\n\n\n\n\nData:" + returned_message+ "\n\n\n")
 
             #If user is logged in
             else:
