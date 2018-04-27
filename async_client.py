@@ -23,7 +23,7 @@ import json
 import struct
 import ast
 import datetime
-
+import calendar
 
 class AsyncClient(asyncio.Protocol):
     def __init__(self):
@@ -101,14 +101,18 @@ class AsyncClient(asyncio.Protocol):
                 if message[0] == "@":
                     #Send to an individual person
                     first_white_space = message.find(" ")
+                    timestamp = calendar.timegm(time.gmtime())
                     self.tuple = self.tuple +(self.username, message[0:first_white_space],
-                                              str(datetime.datetime.now()), message[first_white_space:])
-                    send_message = json.dumps(self.tuple)
+                                              timestamp, message[first_white_space:])
+                    send_message = json.dumps({'MESSAGES' : [self.tuple]})
                     self.send_message(send_message)
                 else:
+                    timestamp = calendar.timegm(time.gmtime())
                     self.tuple = self.tuple + (self.username, "ALL",
-                                               str(datetime.datetime.now()), message)
+                                               timestamp, message)
                     send_message = json.dumps(self.tuple)
+                    send_message = json.dumps({'MESSAGES': [self.tuple]})
+
                     self.send_message(send_message)
                     yield from asyncio.sleep(1.0)
 
