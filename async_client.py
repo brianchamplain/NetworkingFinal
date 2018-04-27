@@ -22,6 +22,8 @@ import ssl
 import json
 import struct
 import ast
+import datetime
+
 
 class AsyncClient(asyncio.Protocol):
     def __init__(self):
@@ -29,6 +31,7 @@ class AsyncClient(asyncio.Protocol):
         self.logged_in = False
         self.header_struct = struct.Struct('!I')
         self.data = b''
+        self.tuple = ()
 
     def connection_made(self,transport):
         self.transport = transport
@@ -36,6 +39,7 @@ class AsyncClient(asyncio.Protocol):
         print('accepted connection from {}'.format(self.address))
 
     def send_message(self, data):
+
         length = self.header_struct.pack(len(data))
         self.transport.write(length)
         message = data.encode('ascii')
@@ -46,6 +50,8 @@ class AsyncClient(asyncio.Protocol):
     def data_received(self, data):
         """simply prints any data that is received"""
         self.data += data
+        if(self.logged_in == True):
+            print(data)
 
 
 
@@ -73,7 +79,7 @@ class AsyncClient(asyncio.Protocol):
 
                 yield from asyncio.sleep(1.0)
 
-                #json_string = json.dumps(self.data)
+
                 self.data = self.data[4:]
                 self.data.decode()
                 json_dict = json.loads(self.data)
@@ -82,6 +88,8 @@ class AsyncClient(asyncio.Protocol):
                 elif json_dict.get("USERNAME_ACCEPTED") == True:
                     print("\n", json_dict.get("INFO"), "\n")
                     print("\n", json_dict.get("USER_LIST"), "\n")
+                    print("\n", json_dict.get("MESSAGES"), "\n")
+                    self.username = message
                     self.logged_in = True
 
             #If user is logged in
@@ -90,9 +98,20 @@ class AsyncClient(asyncio.Protocol):
                 if message == "quit":
                     loop.stop()
                     return
-                self.send_message(message)
-                yield from asyncio.sleep(1.0)
-                print("Test:logged in loop")
+                if message[0] == "@":
+                    #Send to an individual person
+                    first_white_space = message.find(" ")
+                    self.tuple = self.tuple +(self.username, message[0:first_white_space],
+                                              str(datetime.datetime.now()), message[first_white_space:])
+                    send_message = json.dumps(self.tuple)
+                    self.send_message(send_message)
+                else:
+                    self.tuple = self.tuple + (self.username, "ALL",
+                                               str(datetime.datetime.now()), message)
+                    send_message = json.dumps(self.tuple)
+                    self.send_message(send_message)
+                    yield from asyncio.sleep(1.0)
+
 
     def connection_lost(self, ex):
         print("Lost connection" + '\n')
