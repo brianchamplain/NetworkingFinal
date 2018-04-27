@@ -72,7 +72,6 @@ class AsyncClient(asyncio.Protocol):
                     loop.stop()
                     return
                 #store message for your self and send the username
-
                 my_dict = {"USERNAME": message}
                 string_message = json.dumps(my_dict)
                 self.send_message(string_message)
@@ -102,20 +101,24 @@ class AsyncClient(asyncio.Protocol):
                     #Send to an individual person
                     first_white_space = message.find(" ")
                     timestamp = calendar.timegm(time.gmtime())
-                    self.tuple = self.tuple +(self.username, message[0:first_white_space],
+                    tuple = ()
+                    tuple = tuple +(self.username, message[0:first_white_space],
                                               timestamp, message[first_white_space:])
-                    send_message = json.dumps({'MESSAGES' : [self.tuple]})
+                    send_message = json.dumps({'MESSAGES' : [tuple]})
                     self.send_message(send_message)
                 else:
                     timestamp = calendar.timegm(time.gmtime())
-                    self.tuple = self.tuple + (self.username, "ALL",
+                    tuple = ()
+                    tuple = tuple + (self.username, "ALL",
                                                timestamp, message)
-                    send_message = json.dumps(self.tuple)
-                    send_message = json.dumps({'MESSAGES': [self.tuple]})
-
+                    send_message = json.dumps({'MESSAGES': [tuple]})
                     self.send_message(send_message)
-                    yield from asyncio.sleep(1.0)
 
+                yield from asyncio.sleep(1.0)
+                if json_dict.get("USERS_JOINED") is not None:
+                    print("\n", json_dict.get("USERS_JOINED"), "\n")
+                if json_dict.get("USERS_LEFT") is not None:
+                    print("\n", json_dict.get("USERS_LEFT"), "\n")
 
     def connection_lost(self, ex):
         print("Lost connection" + '\n')
